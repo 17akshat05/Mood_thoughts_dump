@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>The Brain Dump – Visual Thought Organizer</title>
+<style>
+  /* Reset & base */
+  * {
+    box-sizing: border-box;
+  }
+  body,html {
+    margin: 0; padding: 0;
+    height: 100%;
+    background: linear-gradient(135deg, #a3c9f1, #cceef9);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    user-select: none;
+    overflow: hidden;
+  }
+  /* Container & layout */
+  #app {
+    max-width: 350px;
+    max-height: 600px;
+    margin: auto;
+    background: #fefefe;
+    border-radius: 15px;
+    box-shadow:
+      0 10px 20px rgba(0,0,0,0.1),
+      inset 0 0 20px #f0f5f9;
+    display: flex;
+    flex-direction: column;
+    padding: 15px 15px 10px;
+    overflow: hidden;
+  }
+
+  header {
+    flex: none;
+    text-align: center;
+    margin-bottom: 10px;
+    position: relative;
+  }
+  header h1 {
+    margin: 0;
+    font-weight: 700;
+    font-size: 1.6rem;
+    color: #1565c0;
+    text-shadow: 0 2px 4px rgba(21,101,192,0.4);
+  }
+  header small {
+    font-weight: 500;
+    color: #225ea8dd;
+    font-size: 0.8rem;
+    display: block;
+    margin-top: -3px;
+  }
+
+  /* Breathing calming background animation */
+  #breathing-bg {
+    position: absolute;
+    top: 15px; left: 15px; right:15px; bottom:15px;
+    z-index: 0;
+    pointer-events: none;
+    border-radius: 15px;
+    background: radial-gradient(circle at center,#cde6fe 50%,transparent 90%);
+    animation: breathe 6s ease-in-out infinite;
+    filter: drop-shadow(0 0 8px #82b3fa);
+  }
+  @keyframes breathe {
+    0%,100% { transform: scale(1); opacity: 0.7;}
+    50% {transform: scale(1.08); opacity: 0.35;}
+  }
+
+  /* Input form */
+  #input-form {
+    flex: none;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 1;
+  }
+  #thought-input {
+    width: 100%;
+    min-height: 80px;
+    resize: none;
+    padding: 10px;
+    font-size: 1rem;
+    border-radius: 10px;
+    border: 2px solid #aac9f9;
+    box-shadow: inset 1px 1px 5px #cce6ff;
+    transition: border-color 0.3s ease;
+  }
+  #thought-input:focus {
+    border-color: #0288d1;
+    outline: none;
+    box-shadow:
+      0 0 8px 2px #5db0fcaa,
+      inset 1px 1px 6px #b1e4ff;
+  }
+
+  #controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 6px;
+  }
+  select {
+    flex-basis: 42%;
+    padding: 8px 10px;
+    border-radius: 10px;
+    border: 2px solid #aac9f9;
+    background: #eaf6ff;
+    font-size: 1rem;
+    color: #1565c0;
+    font-weight: 600;
+    transition: border-color 0.3s ease;
+    cursor: pointer;
+  }
+  select:focus {
+    border-color: #0288d1;
+    outline: none;
+    box-shadow: 0 0 5px 2px #5db0fcaa;
+  }
+
+  button {
+    flex-grow: 1;
+    background: #1565c0;
+    border: none;
+    color: white;
+    padding: 10px 12px;
+    font-weight: 700;
+    font-size: 1rem;
+    border-radius: 10px;
+    cursor: pointer;
+    user-select: none;
+    box-shadow:
+      0 4px 10px #2a6fdbaa;
+    transition: background 0.25s ease;
+  }
+  button:hover {
+    background: #0d47a1;
+  }
+  button:active {
+    background: #0a3a7a;
+  }
+
+  /* Board area */
+  #board {
+    position: relative;
+    flex-grow: 1;
+    background: #f9fbff;
+    border: 2px solid #aae2ff;
+    border-radius: 15px;
+    margin-top: 15px;
+    overflow: auto;
+    padding: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-content: flex-start;
+  }
+  /* Subtle scroll style */
+  #board::-webkit-scrollbar {
+    width: 6px;
+  }
+  #board::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  #board::-webkit-scrollbar-thumb {
+    background-color: #a4d0ffcc;
+    border-radius: 10px;
+  }
+  /* Sticky note style */
+  .note {
+    position: relative;
+    width: 140px;
+    min-height: 90px;
+    user-select: auto;
+    padding: 12px 14px 14px;
+    border-radius: 15px;
+    box-shadow: 1px 6px 12px rgb(0 0 0 / 0.12);
+    font-size: 0.95rem;
+    color: #222;
+    font-weight: 600;
+    cursor: grab;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: box-shadow 0.2s ease;
+    word-break: break-word;
+  }
+
+  .note:active {
+    cursor: grabbing;
+    box-shadow: 1px 10px 20px rgb(0 0 0 / 0.2);
+    transition: none;
+    z-index: 2000;
+  }
+
+  .note.dragging {
+    opacity: 0.7;
+    box-shadow: 1px 14px 30px rgb(0 0 0 / 0.3);
+    cursor: grabbing;
+    transition: none;
+    z-index: 3000;
+  }
+
+  /* Category tag label at bottom */
+  .note .tag-label {
+    font-size: 0.75rem;
+    color: #4448;
+    text-align: right;
+    font-style: italic;
+    margin-top: 6px;
+  }
+
+  /* Colors for categories */
+  .goal {
+    background: #ffd54f;
+    color: #4a3600;
+  }
+  .fear {
+    background: #ff8a80;
+    color: #5f0000;
+  }
+  .task {
+    background: #4fc3f7;
+    color: #003445;
+  }
+  .creative\ idea {
+    background: #ce93d8;
+    color: #3c1141;
+  }
+  .unsorted {
+    background: #cfd8dc;
+    color: #37474f;
+  }
+
+  /* Quote section */
+  #quote {
+    flex: none;
+    padding: 10px 15px;
+    background: #e7f1ff;
+    color: #235ba8;
+    font-style: italic;
+    font-weight: 600;
+    text-align: center;
+    border-radius: 12px;
+    margin-top: 12px;
+    min-height: 40px;
+    user-select: none;
+    box-shadow:
+      inset 0 0 10px #9ac8ff44;
+  }
+
+  /* Clear & export panel */
+  #bottom-actions {
+    margin-top: 12px;
+    display: flex;
+    justify-content: space-between;
+    gap: 15px;
+  }
+  #clearBtn, #exportBtn {
+    flex-grow: 1;
+    padding: 10px 8px;
+    border: none;
+    border-radius: 10px;
+    background: #1565c0;
+    color: white;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.2s ease;
+    box-shadow:
+      0 3px 8px #2a6fdbaa;
+    user-select: none;
+  }
+  #clearBtn:hover, #exportBtn:hover {
+    background: #0d47a1;
+  }
+  #clearBtn:active, #exportBtn:active {
+    background: #0a3a7a;
+  }
+
+  /* Responsive mobile fitting */
+  @media (max-width: 400px) {
+    #app {
+      width: 100vw;
+      max-width: 100vw;
+      border-radius: 0;
+      max-height: 600px;
+      padding-left: 10px;
+      padding-right: 10px;
+    }
+    #board {
+      padding: 8px;
+      gap: 8px;
+    }
+    .note {
+      width: 120px;
+      min-height: 80px;
+      font-size: 0.9rem;
+    }
+  }
+</style>
+</head>
+<body>
+<div id="app" role="main" aria-label="The Brain Dump Visual Thought Organizer">
+
+  <div id="breathing-bg" aria-hidden="true"></div>
+
+  <header>
+    <h1>The Brain Dump</h1>
+    <small>Unload your thoughts, organize your mind.</small>
+  </header>
+
+  <form id="input-form" aria-label="Thought input form">
+    <textarea id="thought-input" aria-label="Thought input" placeholder="Type your thought here..." rows="4" autocomplete="off"></textarea>
+    <div id="controls">
+      <select id="category-select" aria-label="Select thought category">
+        <option value="">-- Select category (or leave empty for auto tag) --</option>
+        <option value="Goal">Goal</option>
+        <option value="Fear">Fear</option>
+        <option value="Task">Task</option>
+        <option value="Creative Idea">Creative Idea</option>
+        <option value="Unsorted">Unsorted</option>
+      </select>
+      <button type="submit" aria-label="Add sticky note">Add</button>
+    </div>
+  </form>
+
+  <section id="board" aria-label="Board with sticky notes" tabindex="0">
+    <!-- Sticky notes will appear here -->
+  </section>
+
+  <div id="quote" aria-live="polite" aria-atomic="true"></div>
+
+  <div id="bottom-actions">
+    <button id="clearBtn" aria-label="Clear all notes">Clear Board</button>
+    <button id="exportBtn" aria-label="Export board as text file">Export Notes</button>
+  </div>
+
+</div>
+
+<script>
+(() => {
+  const board = document.getElementById('board');
+  const inputForm = document.getElementById('input-form');
+  const thoughtInput = document.getElementById('thought-input');
+  const categorySelect = document.getElementById('category-select');
+  const quoteBox = document.getElementById('quote');
+  const clearBtn = document.getElementById('clearBtn');
+  const exportBtn = document.getElementById('exportBtn');
+
+  // Keywords for auto categorization
+  const keywordCategories = [
+    { cat: 'Goal', keys: ['start', 'goal', 'achieve', 'plan', 'business', 'company', 'success'] },
+    { cat: 'Fear', keys: ['worried', 'fear', 'afraid', 'scared', 'anxiety', 'panic', 'stress'] },
+    { cat: 'Task', keys: ['do', 'task', 'todo', 'reminder', 'buy', 'call', 'email', 'fix', 'clean'] },
+    { cat: 'Creative Idea', keys: ['idea', 'creative', 'invent', 'draw', 'write', 'build', 'create'] },
+  ];
+
+  // Motivational quotes (adds more on Fear category add)
+  const motivationalQuotes = [
+    "Believe you can and you're halfway there.",
+    "The only way to do great work is to love what you do.",
+    "You are never too old to set another goal or to dream a new dream.",
+    "What lies behind us and what lies before us are tiny matters compared to what lies within us.",
+    "Courage is resistance to fear, mastery of fear, not absence of fear.",
+    "This too shall pass — even the darkest storms end.",
+    "Turn your wounds into wisdom.",
+    "Small steps every day lead to big changes.",
+    "Let your fears become your fuel, not your chains.",
+  ];
+
+  // Storage key
+  const storageKey = 'brainDumpNotes';
+
+  // State for drag/drop
+  let dragNote = null;
+  let dragOffsetX = 0, dragOffsetY = 0;
+
+  // Load existing notes from localStorage
+  let notes = loadNotes();
+
+  // Render all loaded notes
+  notes.forEach(n => {
+    addNoteElement(n.text, n.category, n.posX, n.posY, false);
+  });
+
+  // Show a welcome quote on load
+  showRandomQuote();
+
+  // Handle form submission
+  inputForm.addEventListener('submit', e => {
+    e.preventDefault();
+    let text = thoughtInput.value.trim();
+    if (!text) return;
+
+    let category = categorySelect.value;
+    if (!category) {
+      category = autoCategorize(text);
+    }
+    // default fallback
+    if (!category) category = 'Unsorted';
+
+    addNoteElement(text, category, null, null, true);
+    thoughtInput.value = '';
+    categorySelect.value = '';
+
+    // Show quote, special if fear
+    if (category.toLowerCase() === 'fear') {
+      showRandomQuote(true);
+    } else {
+      showRandomQuote();
+    }
+  });
+
+  // Add note element to board and data store
+  function addNoteElement(text, category, posX, posY, save = true) {
+    const note = document.createElement('div');
+    note.classList.add('note');
+    // category class uses lowercase + spaces replaced
+    const catClass = category.toLowerCase().replace(/\s+/g, '\\ ');
+    note.classList.add(catClass);
+
+    note.setAttribute('tabindex', '0');
+    note.setAttribute('aria-label', `Note: ${text}, category: ${category}`);
+
+    note.innerHTML = `
+      <div class="note-text">${escapeHtml(text)}</div>
+      <div class="tag-label" aria-hidden="true">#${category}</div>
+    `;
+    // assign color from category class from CSS
+
+    // Set position if provided, else next available in grid flex
+    if (posX !== null && posY !== null) {
+      note.style.position = "absolute";
+      note.style.left = posX + 'px';
+      note.style.top = posY + 'px';
+      board.style.position = "relative";
+      board.appendChild(note);
+    } else {
+      note.style.position = "relative";
+      board.appendChild(note);
+    }
+
+    // Enable drag & drop mouse and finger
+    enableDrag(note);
+
+    if (save) {
+      notes.push({
+        id: Date.now() + Math.random(),
+        text,
+        category,
+        posX: posX !== null ? posX : null,
+        posY: posY !== null ? posY : null
+      });
+      saveNotes();
+    }
+  }
+
+  // Escape HTML to prevent injection in note
+  function escapeHtml(text) {
+    return text
+      .replace(/&/g,"&amp;")
+      .replace(/</g,"&lt;")
+      .replace(/>/g,"&gt;")
+      .replace(/"/g,"&quot;")
+      .replace(/'/g,"&#039;");
+  }
+
+  // Auto categorize based on keywords
+  function autoCategorize(text) {
+    const lowered = text.toLowerCase();
+    for (const item of keywordCategories) {
+      for (const key of item.keys) {
+        if (lowered.includes(key)) {
+          return item.cat;
+        }
+      }
+    }
+    return 'Unsorted';
+  }
+
+  // Save notes to localStorage
+  function saveNotes() {
+    // Update positions for absolutely positioned notes
+    const allNotes = board.querySelectorAll('.note');
+    allNotes.forEach((elem, idx) => {
+      // Find matching note by content and category
+      const text = elem.querySelector('.note-text').textContent;
+      const category = elem.querySelector('.tag-label').textContent.replace("#", "");
+      let noteObj = notes.find(n => n.text === text && n.category === category);
+
+      if (!noteObj) return;
+      
+      // positions for absolute positioned notes
+      if (elem.style.position === 'absolute') {
+        noteObj.posX = parseInt(elem.style.left) || 0;
+        noteObj.posY = parseInt(elem.style.top) || 0;
+      } else {
+        noteObj.posX = null;
+        noteObj.posY = null;
+      }
+    });
+    localStorage.setItem(storageKey, JSON.stringify(notes));
+  }
+
+  // Load notes from localStorage
+  function loadNotes() {
+    try {
+      const stored = localStorage.getItem(storageKey);
+      if (!stored) return [];
+      return JSON.parse(stored);
+    } catch {
+      return [];
+    }
+  }
+
+  // Show a motivational quote
+  // If fearTriggered is true, favor fear-focused quotes
+  function showRandomQuote(fearTriggered = false) {
+    const fearQuotes = [
+      "Courage is resistance to fear, mastery of fear, not absence of fear.",
+      "This too shall pass — even the darkest storms end.",
+      "Turn your wounds into wisdom.",
+      "Let your fears become your fuel, not your chains."
+    ];
+    let pool = fearTriggered ? fearQuotes : motivationalQuotes.concat(fearQuotes);
+    const quote = pool[Math.floor(Math.random() * pool.length)];
+    quoteBox.textContent = quote;
+  }
+
+  // Clear all notes and storage with confirmation
+  clearBtn.addEventListener('click', () => {
+    if (confirm('Clear all your notes? This action cannot be undone.')) {
+      notes = [];
+      while(board.firstChild) {
+        board.removeChild(board.firstChild);
+      }
+      localStorage.removeItem(storageKey);
+      showRandomQuote();
+    }
+  });
+
+  // Export notes to text file (simplified)
+  exportBtn.addEventListener('click', () => {
+    if (notes.length === 0) {
+      alert('No notes to export.');
+      return;
+    }
+    let text = 'The Brain Dump - Exported Notes\n\n';
+    notes.forEach((n,i) => {
+      text += `${i+1}. [${n.category}] ${n.text}\n`;
+    });
+    downloadTextFile(text, 'brain-dump-notes.txt');
+  });
+
+  function downloadTextFile(text, filename) {
+    const blob = new Blob([text], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    }, 0);
+  }
+
+  // Enable drag functionality on a note element
+  function enableDrag(note) {
+    let offsetX, offsetY;
+    let isDragging = false;
+    const boardRect = board.getBoundingClientRect();
+
+    // Support touch and mouse
+    function onStart(e) {
+      e.preventDefault();
+      isDragging = true;
+      note.classList.add('dragging');
+      // Bring to front visually
+      note.style.zIndex = 1000;
+      // position absolute to move freely
+      note.style.position = 'absolute';
+
+      const rect = note.getBoundingClientRect();
+
+      if (e.type === 'touchstart') {
+        const touch = e.touches[0];
+        offsetX = touch.clientX - rect.left;
+        offsetY = touch.clientY - rect.top;
+      } else {
+        offsetX = e.clientX - rect.left;
+        offsetY = e.clientY - rect.top;
+      }
+      // Move note to current position relative to board
+      const relativeX = rect.left - boardRect.left;
+      const relativeY = rect.top - boardRect.top;
+      note.style.left = relativeX + 'px';
+      note.style.top = relativeY + 'px';
+
+      // Fix overflow hidden/scroll
+      // Prevent scrolling while dragging on touch
+      if (e.type === 'touchstart') {
+        document.body.style.touchAction = 'none';
+      }
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onEnd);
+      document.addEventListener('touchmove', onMove, {passive:false});
+      document.addEventListener('touchend', onEnd);
+      document.addEventListener('touchcancel', onEnd);
+    }
+
+    function onMove(e) {
+      if (!isDragging) return;
+      e.preventDefault();
+      let clientX, clientY;
+      if (e.type === 'touchmove') {
+        const touch = e.touches[0];
+        clientX = touch.clientX;
+        clientY = touch.clientY;
+      } else {
+        clientX = e.clientX;
+        clientY = e.clientY;
+      }
+
+      let newLeft = clientX - boardRect.left - offsetX;
+      let newTop = clientY - boardRect.top - offsetY;
+
+      // Constrain within board boundaries
+      const maxLeft = board.clientWidth - note.offsetWidth;
+      const maxTop = board.clientHeight - note.offsetHeight;
+      newLeft = Math.max(0, Math.min(newLeft, maxLeft));
+      newTop = Math.max(0, Math.min(newTop, maxTop));
+
+      note.style.left = newLeft + 'px';
+      note.style.top = newTop + 'px';
+    }
+
+    function onEnd(e) {
+      if (!isDragging) return;
+      isDragging = false;
+      note.classList.remove('dragging');
+      note.style.zIndex = '';
+
+      document.body.style.touchAction = '';
+
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onEnd);
+      document.removeEventListener('touchmove', onMove);
+      document.removeEventListener('touchend', onEnd);
+      document.removeEventListener('touchcancel', onEnd);
+
+      // Save position in note object
+      // Find matching note in data store and update positions
+      const text = note.querySelector('.note-text').textContent;
+      const category = note.querySelector('.tag-label').textContent.replace("#", "");
+      const noteObj = notes.find(n => n.text === text && n.category === category);
+      if(noteObj){
+        noteObj.posX = parseInt(note.style.left);
+        noteObj.posY = parseInt(note.style.top);
+        saveNotes();
+      }
+    }
+
+    note.addEventListener('mousedown', onStart);
+    note.addEventListener('touchstart', onStart, { passive: false });
+  }
+})();
+</script>
+</body>
+</html>
+</content>
+  </create_file>
+  
